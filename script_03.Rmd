@@ -33,23 +33,51 @@ sep_old <-
   read_excel("old_data/class_enrollment_summary_by_term_9-1-2020.xlsx", 
              skip = 3) %>% 
   clean_names() %>% 
-  filter(! is.na(course_title)) %>% 
+  filter(! is.na(course_name)) %>% 
   select(-grad, -non_degree, -x_reg, -vus, -employee, 
          -withdraw, -total, -instructor_full_name, -course_section_code) %>%
   rename(id = course_id,
          title = course_title,
          name = course_name,
          department = course_department) %>% 
+  
+  # We want to group the classes and then find the sum
+  
+  group_by(id, title, name, department) %>%
+  summarize(u_grad = sum(u_grad), .groups = "drop") %>%
   filter(u_grad > 10)
 
 # But this is not correct! Look for Gov 50: Data. What do you see? What can you
 # do to clean it up?
+
+view(sep_old)
 ```
 
 
 ### Scene 1
 
 **Prompt:** Read in and clean the new data, creating an object called `sep_new`. 
+```{r}
+sep_new <-
+  read_excel("new_data/class_enrollment_summary_by_term_9-22-2020.xlsx",
+             skip = 3) %>%
+   clean_names() %>% 
+  filter(! is.na(course_name)) %>% 
+  select(-grad, -non_degree, -x_reg, -vus, -employee, 
+         -withdraw, -total, -instructor_full_name, -course_section_code) %>%
+  rename(id = course_id,
+         title = course_title,
+         name = course_name,
+         department = course_department,
+         u_grad2 = u_grad) %>% 
+  group_by(id, title, name, department) %>%
+  summarize(u_grad2 = sum(u_grad2), .groups = "drop") %>%
+  filter(u_grad2 > 10) %>%
+  arrange(department)
+  
+
+view(sep_new)
+```
 
 
 
@@ -59,17 +87,45 @@ sep_old <-
 
 
 Before we start on the model, Wisdom suggests we should:
+```{r}
+# Decide what data is relevant to the problem itself.
+
+# Throw out any duplicate rows or rows that are outside the scope 
+# of what we are interested in. 
+
+```
 
 
 
 
 After we have a model, Temperance suggests we should:
+```{r}
+# Recognize the limitations of our models
+
+# Recognize the uncertainty 
+
+# Understand internal and external validity 
+```
 
 
 
 ### Scene 3
 
 **Prompt:** Which classes had the biggest increases and decreases in undergraduate enrollments between September 1 and today? Make a graphic that shows the 5 biggest increases and decreases. Make it look nice.
+```{r}
+sep <-
+  inner_join(sep_new, sep_old) %>%
+  mutate(difference = u_grad2 - u_grad) %>%
+  arrange(desc(difference)) %>%
+   slice(1:5, 412:416) %>%
+  ggplot(aes(x  = title, y = difference, fill = department)) +
+  geom_col() +
+  labs(x = "Course Title", y = "Increase or Decrease in Enrollment",
+       title = "Increase or Decrease in Enrollment by Course and
+       Department") +
+  scale_fill
+sep
+```
 
 
 
